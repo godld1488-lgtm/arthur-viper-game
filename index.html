@@ -1,0 +1,548 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>АРТУР: ШАРАГА SURVIVOR — VIPER EDITION</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080a14;color:white;font-family:Arial,sans-serif;touch-action:none}
+canvas{width:100%;height:100%;display:block}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:7px;flex-wrap:wrap;pointer-events:none;z-index:2}
+.panel{padding:8px 11px;border:1px solid #42f5ff66;border-radius:10px;background:#090d1ddd;font-size:13px;box-shadow:0 0 15px #42f5ff22}
+#healthBox{width:130px;height:9px;background:#492039;border-radius:10px;margin-top:5px;overflow:hidden}
+#health{height:100%;width:100%;background:linear-gradient(90deg,#ff347c,#ffc15c)}
+#bossHud{display:none;position:fixed;top:80px;left:15%;width:70%;text-align:center;z-index:3;font-size:13px;color:#ff8cbd;font-weight:bold}
+#bossOuter{height:12px;background:#32132b;border:1px solid #ff3e9d;border-radius:10px;overflow:hidden;margin-top:5px}
+#bossBar{height:100%;width:100%;background:linear-gradient(90deg,#ff318d,#ffbd61)}
+#toast{position:fixed;top:20%;left:50%;transform:translateX(-50%);font-size:clamp(16px,3vw,28px);font-weight:900;text-align:center;color:white;text-shadow:0 0 15px #ff3e9d;pointer-events:none;z-index:4;opacity:0;transition:opacity .2s}
+#overlay{position:fixed;inset:0;z-index:10;background:radial-gradient(ellipse,#19213b,#050610);display:flex;align-items:center;justify-content:center;padding:15px}
+.menu{width:min(680px,100%);max-height:94vh;overflow:auto;background:#0c1020ee;border:1px solid #42f5ff66;border-radius:18px;padding:24px;text-align:center;box-shadow:0 0 45px #42f5ff22}
+h1{font-size:clamp(25px,5vw,44px);line-height:1.1;margin:0 0 8px;text-shadow:0 0 15px #42f5ff}
+h1 span{color:#ff3e9d}
+.story{text-align:left;font-size:14px;line-height:1.55;color:#cbd3e7;margin:18px 0}
+h2{font-size:18px;color:#ffd166}
+button{border:1px solid #42f5ff88;background:#17243c;color:white;padding:13px 19px;border-radius:11px;font-weight:bold;cursor:pointer}
+button:active{transform:scale(.96)}
+.primary{background:linear-gradient(135deg,#ff3e9d,#8b39c9);border:0;font-size:17px;padding:15px 28px}
+.small{font-size:11px;color:#8491aa}
+#mobile{display:none;position:fixed;bottom:12px;left:0;right:0;z-index:5;justify-content:space-between;align-items:end;padding:0 14px;pointer-events:none}
+#stick{width:125px;height:125px;border:2px solid #42f5ff77;border-radius:50%;background:#42f5ff13;position:relative;pointer-events:auto}
+#knob{position:absolute;width:48px;height:48px;left:36px;top:36px;border-radius:50%;background:#42f5ff66;border:2px solid #b4fbff}
+.controls{display:flex;flex-direction:column;gap:9px;pointer-events:auto}
+.controls button{width:110px;height:52px;padding:4px;font-size:12px;background:#151e38eF}
+#attackBtn{border-color:#ff3e9d}
+#healBtn{border-color:#c18aff}
+#dashBtn{border-color:#42f5ff}
+@media(max-width:700px){#mobile{display:flex}#hud{top:5px;left:5px;gap:4px}.panel{font-size:10px;padding:6px 7px}#healthBox{width:95px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+ <div class="panel">❤️ <b id="hpText">100/100</b><div id="healthBox"><div id="health"></div></div></div>
+ <div class="panel">🌊 Волна: <b id="wave">1</b></div>
+ <div class="panel">🥃 Чекушки: <b id="coins">0</b></div>
+ <div class="panel">🚬 Чапман: <b id="cigs">0</b></div>
+ <div class="panel">🎤 <b id="weapon">Проводной шнур</b> <span class="small">Q</span></div>
+</div>
+<div id="bossHud">БРАТ — ГЛАВНЫЙ ПО КОРИДОРУ<div id="bossOuter"><div id="bossBar"></div></div></div>
+<div id="toast"></div>
+
+<div id="mobile">
+ <div id="stick"><div id="knob"></div></div>
+ <div class="controls">
+  <button id="attackBtn">🎤 АТАКА</button>
+  <button id="dashBtn">⚡ РЫВОК</button>
+  <button id="healBtn">🚬 ЧАПМАН</button>
+ </div>
+</div>
+
+<div id="overlay">
+ <div class="menu" id="menu">
+  <h1>АРТУР: ШАРАГА<br><span>SURVIVOR</span></h1>
+  <div style="letter-spacing:4px;color:#42f5ff">VIPER EDITION</div>
+  <div class="story">
+   <b>СЮЖЕТ</b><br>
+   Артур — легендарный рэпер в стиле Вайпер, застрявший в бесконечных коридорах Шараги. На него прут толпы Сёстер — обычных девчонок-студенток, швыряющих тетради, — и Братьев: бородатых качков в спортивках «RUSSIA», идущих на таран.<br><br>
+   Артур должен выжить, доказать, кто тут Главный по Коридору, и прорваться на свой концерт.
+   <h2>УПРАВЛЕНИЕ</h2>
+   ПК: WASD — движение, мышь — направление, ЛКМ/Shift — атака, Space — Чапман, Q — микрофон, E — рывок.<br>
+   Телефон: джойстик слева, кнопки справа.
+   <h2>ОРУЖИЕ</h2>
+   🎤 Проводной шнур — быстрые удары.<br>
+   🔊 Студийный тяжёлый — мощная круговая атака.<br>
+   📡 Беспроводной радио — звуковые волны.
+   <p class="small">Чекушки и Чапман выпадают из врагов. Босс появляется каждые 10 волн.</p>
+  </div>
+  <button class="primary" id="startBtn">ВОЙТИ В ШАРАГУ</button>
+  <p class="small" id="record"></p>
+ </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+let W=innerWidth,H=innerHeight,DPR=1;
+function resize(){
+ W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);
+ canvas.width=W*DPR;canvas.height=H*DPR;
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener("resize",resize);resize();
+
+const rand=(a,b)=>Math.random()*(b-a)+a;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const world={w:2200,h:1600};
+const camera={x:1100,y:800};
+const keys={};
+const joystick={x:0,y:0,active:false};
+const mouse={x:W/2+100,y:H/2};
+let player=null,enemies=[],bullets=[],waves=[],loot=[],particles=[],labels=[];
+let boss=null,weapon=0,wave=1,coins=0,cigs=0,kills=0,score=0;
+let running=false,attackHeld=false,shake=0,last=0,spawnTimer=0,attackTimer=0,dashTimer=0;
+let toastTimer=0,gameTime=0,audio=null,muted=false;
+const weaponNames=["Проводной шнур","Студийный тяжёлый","Беспроводной радио"];
+let bestScore=Number(localStorage.getItem("arthurBestScore")||0);
+let bestWave=Number(localStorage.getItem("arthurBestWave")||0);
+
+function sound(f=300,d=.1,type="sine"){
+ try{
+  if(muted)return;
+  if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();
+  let o=audio.createOscillator(),g=audio.createGain();
+  o.type=type;o.frequency.value=f;g.gain.setValueAtTime(.035,audio.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d);
+  o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+d);
+ }catch(e){}
+}
+function message(s){
+ $("toast").textContent=s;$("toast").style.opacity=1;toastTimer=1.8;
+}
+function burst(x,y,color,n=12,power=150){
+ for(let i=0;i<n;i++){
+  let a=rand(0,Math.PI*2),v=rand(power*.2,power);
+  particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:rand(.3,.8),max:.8,size:rand(2,5),color});
+ }
+}
+function label(x,y,text,color="#fff"){
+ labels.push({x,y,text,color,life:1});
+}
+function startGame(){
+ player={x:1100,y:800,r:22,hp:100,maxHp:100,speed:220,damage:20,face:0,walk:0,invuln:0,dash:0};
+ camera.x=player.x;camera.y=player.y;
+ enemies=[];bullets=[];waves=[];loot=[];particles=[];labels=[];
+ boss=null;weapon=0;wave=1;coins=0;cigs=0;kills=0;score=0;
+ attackTimer=0;dashTimer=0;spawnTimer=.5;shake=0;gameTime=0;
+ $("bossHud").style.display="none";
+ running=true;$("overlay").style.display="none";
+ startWave();last=performance.now();
+}
+function startWave(){
+ if(wave%10===0){
+  boss={x:clamp(player.x+350,100,world.w-100),y:player.y-100,r:55,hp:1000+wave*90,maxHp:1000+wave*90,attack:1.5,phase:0,charge:0,slam:0,speed:85};
+  $("bossHud").style.display="block";
+  message("БРАТ ВЫШЕЛ НА КОРИДОР!");
+  sound(75,.5,"sawtooth");
+ }else{
+  $("bossHud").style.display="none";
+  message("ВОЛНА "+wave+" — ДЕРЖИ КОРИДОР!");
+ }
+ spawnTimer=.5;
+}
+function spawnEnemy(){
+ const a=rand(0,Math.PI*2);
+ const d=rand(Math.min(W,H)*.34,Math.min(W,H)*.49);
+ const x=clamp(player.x+Math.cos(a)*d,40,world.w-40);
+ const y=clamp(player.y+Math.sin(a)*d,40,world.h-40);
+ let type=Math.random()<.16?"tank":Math.random()<.35?"runner":"sister";
+ let hp=type==="tank"?110+wave*5:type==="runner"?35+wave*3:48+wave*4;
+ enemies.push({x,y,r:type==="tank"?26:18,hp,maxHp:hp,type,
+  speed:type==="tank"?55:type==="runner"?125:76,attack:rand(1,2),walk:rand(0,5),hit:0});
+}
+function spawnLoot(x,y){
+ if(Math.random()<.8)loot.push({x:x+rand(-12,12),y:y+rand(-12,12),type:"coin",r:10});
+ if(Math.random()<.2)loot.push({x:x+rand(-12,12),y:y+rand(-12,12),type:"cig",r:12});
+}
+function killEnemy(e){
+ let isBoss=e===boss;
+ score+=isBoss?5000:100;kills++;
+ spawnLoot(e.x,e.y);
+ burst(e.x,e.y,isBoss?"#ff3e9d":"#42f5ff",isBoss?55:17,220);
+ label(e.x,e.y-25,isBoss?"БРАТ ПОВЕРЖЕН!":"+100","#ffd166");
+ if(isBoss){
+  boss=null;$("bossHud").style.display="none";
+  coins+=25;message("БРАТ УШЁЛ В НОКАУТ!");
+  wave++;kills=0;startWave();
+ }else{
+  enemies.splice(enemies.indexOf(e),1);
+ }
+}
+function hurtEnemy(e,dmg,kx=0,ky=0){
+ e.hp-=dmg;e.hit=.12;e.x+=kx;e.y+=ky;
+ burst(e.x,e.y,"#ffd58a",5,100);shake=Math.max(shake,3);
+ if(e.hp<=0)killEnemy(e);
+}
+function hurtPlayer(dmg){
+ if(player.invuln>0)return;
+ player.hp-=dmg;player.invuln=.8;shake=12;
+ burst(player.x,player.y,"#ff3e9d",15,170);sound(90,.15,"sawtooth");
+ if(player.hp<=0)gameOver();
+}
+function heal(){
+ if(!running||cigs<=0||player.hp>=player.maxHp)return;
+ cigs--;player.hp=Math.min(player.maxHp,player.hp+25);
+ for(let i=0;i<10;i++)particles.push({x:player.x+rand(-10,10),y:player.y-20,vx:rand(-20,20),vy:rand(-60,-15),life:1,max:1,size:rand(5,10),color:"#aaa"});
+ label(player.x,player.y-45,"+25 HP","#b8ffc8");sound(520,.2);
+}
+function dash(){
+ if(!running||dashTimer>0)return;
+ let x=joystick.x,y=joystick.y;
+ if(Math.hypot(x,y)<.1){x=Math.cos(player.face);y=Math.sin(player.face)}
+ player.dash=.2;player.dx=x;player.dy=y;dashTimer=2;
+ burst(player.x,player.y,"#42f5ff",14,150);sound(180,.15,"sawtooth");
+}
+function switchWeapon(){
+ weapon=(weapon+1)%3;
+ $("weapon").textContent=weaponNames[weapon];
+ message(weaponNames[weapon]);sound(weapon===1?130:weapon===2?700:350,.12);
+}
+function attack(){
+ if(!running||attackTimer>0)return;
+ let dx=mouse.x-W/2,dy=mouse.y-H/2;
+ if(Math.hypot(dx,dy)<10){dx=Math.cos(player.face);dy=Math.sin(player.face)}
+ let angle=Math.atan2(dy,dx);player.face=angle;
+ const all=enemies.concat(boss?[boss]:[]);
+ if(weapon===0){
+  attackTimer=.32;
+  let target=all.filter(e=>distance(player,e)<110&&
+   Math.cos(Math.atan2(e.y-player.y,e.x-player.x)-angle)>.0)
+   .sort((a,b)=>distance(player,a)-distance(player,b))[0];
+  if(target)hurtEnemy(target,player.damage,Math.cos(angle)*15,Math.sin(angle)*15);
+  burst(player.x+Math.cos(angle)*50,player.y+Math.sin(angle)*50,"#42f5ff",8,100);
+  sound(430,.08,"square");
+ }else if(weapon===1){
+  attackTimer=.95;shake=8;burst(player.x,player.y,"#ffd166",28,230);
+  for(let e of all.slice()){
+   if(distance(player,e)<155){
+    let a=Math.atan2(e.y-player.y,e.x-player.x);
+    hurtEnemy(e,105,Math.cos(a)*35,Math.sin(a)*35);
+   }
+  }
+  sound(100,.3,"sawtooth");
+ }else{
+  attackTimer=.42;
+  waves.push({x:player.x+Math.cos(angle)*30,y:player.y+Math.sin(angle)*30,
+   vx:Math.cos(angle)*530,vy:Math.sin(angle)*530,r:18,life:1.5,damage:38,hit:[]});
+  sound(740,.13);
+ }
+}
+function update(dt){
+ gameTime+=dt;
+ attackTimer=Math.max(0,attackTimer-dt);
+ dashTimer=Math.max(0,dashTimer-dt);
+ player.invuln=Math.max(0,player.invuln-dt);
+ player.dash=Math.max(0,player.dash-dt);
+
+ let dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+joystick.x;
+ let dy=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+joystick.y;
+ let len=Math.hypot(dx,dy);if(len>1){dx/=len;dy/=len}
+ if(player.dash>0){dx=player.dx;dy=player.dy}
+ let speed=player.dash>0?780:player.speed;
+ player.x=clamp(player.x+dx*speed*dt,30,world.w-30);
+ player.y=clamp(player.y+dy*speed*dt,30,world.h-30);
+ if(Math.hypot(dx,dy)>.05){
+  player.walk+=dt*12;player.face=Math.atan2(dy,dx);
+  if(Math.random()<dt*18)particles.push({x:player.x,y:player.y+15,vx:rand(-25,25),vy:rand(-25,5),life:.35,max:.35,size:3,color:"#a5aabe"});
+ }
+ if(attackHeld&&attackTimer<=0)attack();
+
+ spawnTimer-=dt;
+ if(spawnTimer<=0&&enemies.length<Math.min(8+wave*2,30)){
+  spawnEnemy();spawnTimer=Math.max(.35,1.1-wave*.025);
+ }
+ for(let e of enemies.slice()){
+  let a=Math.atan2(player.y-e.y,player.x-e.x),d=distance(e,player);
+  e.walk+=dt*7;e.hit=Math.max(0,e.hit-dt);
+  if(d>e.r+player.r+4){e.x+=Math.cos(a)*e.speed*dt;e.y+=Math.sin(a)*e.speed*dt}
+  if(d<e.r+player.r+4){
+   e.attack-=dt;if(e.attack<=0){hurtPlayer(e.type==="tank"?18:10);e.attack=1}
+  }
+  if(e.type==="sister"){
+   e.attack-=dt;
+   if(e.attack<=0&&d<480){
+    bullets.push({x:e.x,y:e.y,vx:Math.cos(a)*250,vy:Math.sin(a)*250,r:7,life:2,damage:8,color:"#ff83bd"});
+    e.attack=2.5;
+   }
+  }
+ }
+ if(boss){
+  let b=boss,a=Math.atan2(player.y-b.y,player.x-b.x),d=distance(b,player);
+  b.phase+=dt;
+  b.x+=Math.cos(a)*b.speed*dt*(d>100?1:.2);
+  b.y+=Math.sin(a)*b.speed*dt*(d>100?1:.2);
+  b.attack-=dt;
+  if(d<b.r+player.r)hurtPlayer(20);
+  if(b.attack<=0){
+   let pattern=Math.floor(rand(0,3));
+   if(pattern===0){
+    message("БРАТ: ТАРАН!");
+    b.charge=.55;b.cx=Math.cos(a);b.cy=Math.sin(a);b.attack=2.7;
+   }else if(pattern===1){
+    message("БРАТ: УДАР ПО ПОЛУ!");
+    b.slam=.65;b.attack=3;
+   }else{
+    message("БРАТ: КРУГОВАЯ АТАКА!");
+    for(let i=0;i<14;i++){
+     let t=i*Math.PI*2/14;
+     bullets.push({x:b.x,y:b.y,vx:Math.cos(t)*190,vy:Math.sin(t)*190,r:10,life:3,damage:14,color:"#ff3e9d"});
+    }
+    b.attack=3.2;
+   }
+  }
+  if(b.charge>0){
+   b.charge-=dt;b.x+=b.cx*620*dt;b.y+=b.cy*620*dt;
+   if(distance(b,player)<b.r+player.r)hurtPlayer(25);
+  }
+  if(b.slam>0){
+   b.slam-=dt;
+   if(b.slam<=0){
+    shake=18;burst(b.x,b.y,"#ff3e9d",45,300);
+    if(distance(b,player)<230)hurtPlayer(25);
+   }
+  }
+  $("bossBar").style.width=clamp(b.hp/b.maxHp*100,0,100)+"%";
+ }
+ for(let p of bullets){
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+  if(distance(p,player)<p.r+player.r){hurtPlayer(p.damage);p.life=0}
+ }
+ bullets=bullets.filter(p=>p.life>0);
+ for(let p of waves){
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;
+  for(let e of enemies.concat(boss?[boss]:[])){
+   if(!p.hit.includes(e)&&distance(p,e)<p.r+e.r){
+    p.hit.push(e);hurtEnemy(e,p.damage,Math.sign(p.vx)*10,Math.sign(p.vy)*10);
+   }
+  }
+ }
+ waves=waves.filter(p=>p.life>0);
+ for(let p of loot){
+  if(distance(p,player)<p.r+player.r+8){
+   if(p.type==="coin"){coins++;score+=25;label(p.x,p.y,"+1 ЧЕКУШКА","#ffd166");sound(850,.07)}
+   else{cigs++;label(p.x,p.y,"ЧАПМАН +1","#c8a17c");sound(500,.1)}
+   p.got=true;
+  }
+ }
+ loot=loot.filter(p=>!p.got);
+ for(let p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.97;p.vy*=.97;p.life-=dt}
+ particles=particles.filter(p=>p.life>0);
+ for(let t of labels){t.y-=25*dt;t.life-=dt}
+ labels=labels.filter(t=>t.life>0);
+ shake=Math.max(0,shake-dt*25);
+ if(!boss&&kills>=wave*8){wave++;kills=0;startWave()}
+ camera.x=clamp(player.x,W/2,world.w-W/2);
+ camera.y=clamp(player.y,H/2,world.h-H/2);
+ $("hpText").textContent=Math.ceil(player.hp)+"/"+player.maxHp;
+ $("health").style.width=clamp(player.hp/player.maxHp*100,0,100)+"%";
+ $("wave").textContent=wave;$("coins").textContent=coins;$("cigs").textContent=cigs;
+}
+function floor(){
+ ctx.fillStyle="#101323";ctx.fillRect(0,0,world.w,world.h);
+ let g=ctx.createLinearGradient(0,0,world.w,world.h);
+ g.addColorStop(0,"#1b2037");g.addColorStop(.5,"#0d1222");g.addColorStop(1,"#211328");
+ ctx.fillStyle=g;ctx.fillRect(0,0,world.w,world.h);
+ ctx.strokeStyle="#34425a55";ctx.lineWidth=2;
+ for(let x=0;x<world.w;x+=100){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,world.h);ctx.stroke()}
+ for(let y=0;y<world.h;y+=100){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(world.w,y);ctx.stroke()}
+ for(let x=120;x<world.w;x+=400){
+  ctx.fillStyle="#252c42";ctx.fillRect(x,65,230,35);ctx.fillRect(x,world.h-100,230,35);
+  ctx.fillStyle="#42f5ff25";ctx.fillRect(x+10,70,210,4);
+ }
+ for(let y=230;y<world.h;y+=440){
+  ctx.fillStyle="#20263b";ctx.fillRect(45,y,32,150);ctx.fillRect(world.w-77,y,32,150);
+ }
+ ctx.fillStyle="#42f5ff";ctx.font="bold 17px Arial";ctx.shadowBlur=12;ctx.shadowColor="#42f5ff";
+ ctx.fillText("ШАРАГА • КОРИДОР Б",world.w/2-100,35);ctx.shadowBlur=0;
+}
+function drawArthur(){
+ let p=player,bob=Math.sin(p.walk)*3;
+ ctx.save();ctx.translate(p.x,p.y+bob);
+ ctx.fillStyle="#0008";ctx.beginPath();ctx.ellipse(0,20,28,12,0,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=20;ctx.shadowColor="#42f5ff";
+ ctx.fillStyle="#20283a";ctx.beginPath();ctx.ellipse(0,0,25,28,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+ ctx.fillStyle="#d6a77f";ctx.beginPath();ctx.arc(0,-25,19,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#17131b";
+ for(let i=-2;i<=2;i++){ctx.beginPath();ctx.roundRect(i*8-3,-45+Math.abs(i)*2,6,27,3);ctx.fill()}
+ ctx.fillStyle="#080a12";ctx.fillRect(-17,-30,15,9);ctx.fillRect(2,-30,15,9);
+ ctx.fillStyle="#42f5ff";ctx.fillRect(-2,-28,4,3);
+ ctx.fillStyle="#242c40";ctx.beginPath();ctx.roundRect(-23,-5,46,29,12);ctx.fill();
+ ctx.fillStyle="#a9b7cb";ctx.fillRect(-17,13,12,13);ctx.fillRect(5,13,12,13);
+ ctx.strokeStyle="#d9e5ff";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(15,-1);ctx.lineTo(35,-10);ctx.stroke();
+ ctx.fillStyle="#a7efff";ctx.fillRect(30,-17,8,16);
+ ctx.restore();
+}
+function drawSister(e){
+ ctx.save();ctx.translate(e.x,e.y+Math.sin(e.walk)*2);
+ ctx.shadowBlur=12;ctx.shadowColor="#ff5fa9";
+ ctx.fillStyle=e.hit>0?"#fff":"#b94c87";
+ ctx.beginPath();ctx.ellipse(0,4,16,19,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#dca77e";ctx.beginPath();ctx.arc(0,-18,13,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#44243a";ctx.beginPath();ctx.arc(0,-27,12,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(8,-30,7,14);
+ ctx.fillStyle="#171323";ctx.fillRect(-9,-20,7,4);ctx.fillRect(2,-20,7,4);
+ ctx.fillStyle="#e5d9ff";ctx.fillRect(12,-2,12,15);
+ ctx.restore();
+}
+function drawTank(e){
+ ctx.save();ctx.translate(e.x,e.y);ctx.shadowBlur=15;ctx.shadowColor="#ff7a45";
+ ctx.fillStyle=e.hit>0?"#fff":"#55546a";ctx.beginPath();ctx.roundRect(-26,-23,52,48,12);ctx.fill();
+ ctx.fillStyle="#c18a68";ctx.beginPath();ctx.arc(0,-30,19,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#302b2b";ctx.beginPath();ctx.arc(0,-35,19,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#d9e4ee";ctx.font="bold 9px Arial";ctx.fillText("RUSSIA",-20,3);
+ ctx.fillStyle="#29202a";ctx.beginPath();ctx.moveTo(-10,-18);ctx.lineTo(0,-9);ctx.lineTo(10,-18);ctx.fill();
+ ctx.restore();
+}
+function drawBoss(b){
+ ctx.save();ctx.translate(b.x,b.y+Math.sin(b.phase*4)*3);
+ ctx.shadowBlur=28;ctx.shadowColor="#ff267e";
+ ctx.fillStyle=b.slam>0?"#ff9acb":"#41465b";
+ ctx.beginPath();ctx.roundRect(-49,-38,98,83,19);ctx.fill();
+ ctx.fillStyle="#b98060";ctx.beginPath();ctx.arc(0,-54,34,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#30242a";ctx.beginPath();ctx.arc(0,-66,34,Math.PI,Math.PI*2);ctx.fill();
+ ctx.fillRect(-29,-64,58,20);
+ ctx.fillStyle="#18131a";ctx.beginPath();ctx.moveTo(-23,-43);ctx.lineTo(0,-28);ctx.lineTo(23,-43);ctx.fill();
+ ctx.fillStyle="#fff";ctx.font="bold 14px Arial";ctx.fillText("RUSSIA",-31,0);
+ ctx.fillStyle="#ff3e9d";ctx.fillRect(-58,-15,17,34);ctx.fillRect(41,-15,17,34);
+ ctx.restore();
+}
+function render(){
+ ctx.clearRect(0,0,W,H);
+ ctx.save();
+ ctx.translate(W/2-camera.x+rand(-shake,shake),H/2-camera.y+rand(-shake,shake));
+ floor();
+ for(let p of loot){
+  ctx.save();ctx.translate(p.x,p.y);ctx.shadowBlur=14;ctx.shadowColor=p.type==="coin"?"#ffd166":"#a66b42";
+  if(p.type==="coin"){ctx.fillStyle="#ffd166";ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.fillStyle="#65451d";ctx.font="bold 10px Arial";ctx.fillText("₽",-4,4)}
+  else{ctx.fillStyle="#8a4a32";ctx.fillRect(-11,-8,22,16);ctx.fillStyle="#e6bc8c";ctx.fillRect(-7,-5,14,3);ctx.fillStyle="#fff";ctx.font="7px Arial";ctx.fillText("CH",-6,5)}
+  ctx.restore();
+ }
+ for(let e of enemies){
+  if(e.type==="tank")drawTank(e);else drawSister(e);
+  ctx.fillStyle="#401a31";ctx.fillRect(e.x-17,e.y-38,34,4);
+  ctx.fillStyle="#ff4c91";ctx.fillRect(e.x-17,e.y-38,34*clamp(e.hp/e.maxHp,0,1),4);
+ }
+ if(boss)drawBoss(boss);
+ for(let p of bullets){
+  ctx.save();ctx.shadowBlur=14;ctx.shadowColor=p.color;ctx.fillStyle=p.color;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();
+ }
+ for(let p of waves){
+  ctx.save();ctx.shadowBlur=18;ctx.shadowColor="#c27cff";ctx.strokeStyle="#d5a5ff";ctx.lineWidth=5;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.stroke();ctx.restore();
+ }
+ for(let p of particles){
+  ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;ctx.shadowBlur=9;ctx.shadowColor=p.color;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=1;ctx.shadowBlur=0;
+ for(let t of labels){
+  ctx.globalAlpha=clamp(t.life,0,1);ctx.fillStyle=t.color;ctx.font="bold 15px Arial";
+  ctx.textAlign="center";ctx.fillText(t.text,t.x,t.y);
+ }
+ ctx.globalAlpha=1;
+ drawArthur();
+ ctx.restore();
+ let vignette=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.2,W/2,H/2,Math.max(W,H)*.75);
+ vignette.addColorStop(0,"transparent");vignette.addColorStop(1,"#03040bb8");
+ ctx.fillStyle=vignette;ctx.fillRect(0,0,W,H);
+}
+function gameOver(){
+ running=false;
+ bestScore=Math.max(bestScore,score);bestWave=Math.max(bestWave,wave);
+ localStorage.setItem("arthurBestScore",bestScore);
+ localStorage.setItem("arthurBestWave",bestWave);
+ $("bossHud").style.display="none";
+ $("menu").innerHTML=`
+ <h1>АРТУР <span>В НОКАУТЕ</span></h1>
+ <h2>ШАРАГА ПОКА НЕ ПАЛА</h2>
+ <div class="story">Волна: <b>${wave}</b><br>Чекушки: <b>${coins}</b><br>Побеждено врагов: <b>${kills}</b><br>Счёт: <b>${score}</b><br><br>Брат уже зовёт подкрепление. Попробуешь ещё раз?</div>
+ <button class="primary" id="startBtn">РЕВАНШ</button>
+ <p class="small">Рекорд: ${bestScore} • Лучшая волна: ${bestWave}</p>`;
+ $("startBtn").onclick=startGame;
+ $("overlay").style.display="flex";
+}
+function loop(t){
+ let dt=Math.min((t-last)/1000,.033);last=t;
+ if(running){
+  update(dt);render();
+  toastTimer-=dt;if(toastTimer<=0)$("toast").style.opacity=0;
+ }
+ requestAnimationFrame(loop);
+}
+$("startBtn").onclick=startGame;
+$("record").textContent="РЕКОРД: "+bestScore+" • ЛУЧШАЯ ВОЛНА: "+bestWave;
+requestAnimationFrame(t=>{last=t;loop(t)});
+
+// Клавиатура
+addEventListener("keydown",e=>{
+ keys[e.code]=true;
+ if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();
+ if(e.code==="Space"&&!e.repeat)heal();
+ if(e.code==="KeyQ"&&!e.repeat)switchWeapon();
+ if(e.code==="KeyE"&&!e.repeat)dash();
+ if((e.code==="ShiftLeft"||e.code==="ShiftRight")&&!e.repeat)attack();
+});
+addEventListener("keyup",e=>keys[e.code]=false);
+
+// Мышь
+canvas.addEventListener("mousemove",e=>{mouse.x=e.clientX;mouse.y=e.clientY});
+canvas.addEventListener("mousedown",e=>{if(e.button===0){attackHeld=true;attack()}});
+addEventListener("mouseup",()=>attackHeld=false);
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
+
+// Мобильный джойстик
+const stick=$("stick"),knob=$("knob");
+function moveJoy(e){
+ let r=stick.getBoundingClientRect();
+ let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+ let len=Math.hypot(dx,dy),max=39;
+ if(len>max){dx=dx/len*max;dy=dy/len*max}
+ joystick.x=dx/max;joystick.y=dy/max;
+ knob.style.left=(36+dx)+"px";knob.style.top=(36+dy)+"px";
+}
+function stopJoy(){
+ joystick.active=false;joystick.x=joystick.y=0;
+ knob.style.left="36px";knob.style.top="36px";
+}
+stick.addEventListener("pointerdown",e=>{
+ joystick.active=true;stick.setPointerCapture(e.pointerId);moveJoy(e);
+});
+stick.addEventListener("pointermove",e=>{if(joystick.active)moveJoy(e)});
+stick.addEventListener("pointerup",stopJoy);
+stick.addEventListener("pointercancel",stopJoy);
+
+$("attackBtn").addEventListener("pointerdown",e=>{
+ e.preventDefault();attackHeld=true;attack();
+});
+$("attackBtn").addEventListener("pointerup",()=>attackHeld=false);
+$("attackBtn").addEventListener("pointercancel",()=>attackHeld=false);
+$("dashBtn").addEventListener("pointerdown",e=>{e.preventDefault();dash()});
+$("healBtn").addEventListener("pointerdown",e=>{e.preventDefault();heal()});
+
+addEventListener("blur",()=>{
+ attackHeld=false;stopJoy();
+ for(let k in keys)keys[k]=false;
+});
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden){attackHeld=false;stopJoy()}
+});
+})();
+</script>
+</body>
+</html>
